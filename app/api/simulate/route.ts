@@ -2,6 +2,11 @@ import { NextResponse } from 'next/server'
 import { SIMULATION_SCENARIOS } from '@/lib/mock-data'
 import { generateProcurementPlan } from '@/lib/openai'
 import { createSupabaseClient } from '@/lib/supabase'
+import { broadcastCrisisAlert } from '@/telegram/bot'
+
+const RISK_MAP: Record<string, number> = {
+  hormuz_closure: 94, redsea_shutdown: 72, opec_cut: 65, combined_crisis: 99
+}
 
 export async function POST(req: Request) {
   const body = await req.json()
@@ -29,6 +34,15 @@ export async function POST(req: Request) {
       active: true,
     })
   }
+
+  // Fire-and-forget Telegram broadcast (non-blocking)
+  broadcastCrisisAlert(
+    scenario.name,
+    scenario.icon,
+    RISK_MAP[scenarioId] ?? 50,
+    scenario.impacts.priceChange,
+    scenario.impacts.affectedVolume
+  ).catch(() => {})
 
   return NextResponse.json({
     scenario,
