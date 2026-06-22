@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { analyzeSPRStrategy } from '@/lib/claude'
+import { analyzeSPRStrategy } from '@/lib/openai'
 
 export async function POST(req: Request) {
   const { crisisType, daysOfCover, dailyDemand } = await req.json()

@@ -1,13 +1,15 @@
 'use client'
 
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useRef } from 'react'
 import dynamic from 'next/dynamic'
 import CrisisPanel from '@/components/CrisisPanel'
 import RiskFeed from '@/components/RiskFeed'
 import SPRCountdown from '@/components/SPRCountdown'
 import ProcurementPanel from '@/components/ProcurementPanel'
 import VesselTable from '@/components/VesselTable'
-import { Shield, Activity, Wifi } from 'lucide-react'
+import { Shield, Activity, Wifi, Radio } from 'lucide-react'
+import { createSupabaseClient } from '@/lib/supabase'
+import type { SupabaseClient } from '@supabase/supabase-js'
 
 const Globe = dynamic(() => import('@/components/Globe'), { ssr: false })
 
@@ -21,16 +23,20 @@ interface SimulationResult {
   scenario?: {
     name: string
     impacts: {
-      priceChange: number
-      transitDelayDays: number
-      affectedVolume: number
-      sprDaysRemaining: number
-      gdpImpact: number
-      powerSectorStress: number
+      priceChange: number; transitDelayDays: number
+      affectedVolume: number; sprDaysRemaining: number
+      gdpImpact: number; powerSectorStress: number
     }
     alternatives: Array<{ route: string; viability: number; extraDays: number; extraCost: string; capacity: string }>
   }
-  procurement?: { summary: string; recommendations: Array<{ supplier: string; volume: string; route: string; cost: string; timeline: string; confidence: number }> }
+  procurement?: {
+    summary: string
+    recommendations: Array<{ supplier: string; volume: string; route: string; cost: string; timeline: string; confidence: number }>
+  }
+}
+
+const RISK_MAP: Record<string, number> = {
+  hormuz_closure: 94, redsea_shutdown: 72, opec_cut: 65, combined_crisis: 99
 }
 
 export default function WarRoom() {
@@ -40,6 +46,9 @@ export default function WarRoom() {
   const [simulationResult, setSimulationResult] = useState<SimulationResult | null>(null)
   const [overallRisk, setOverallRisk] = useState(42)
   const [activeTab, setActiveTab] = useState<'procurement' | 'vessels'>('procurement')
+  const [liveViewers, setLiveViewers] = useState(1)
+  const [rtConnected, setRtConnected] = useState(false)
+  const sbRef = useRef<SupabaseClient | null>(null)
 
   const fetchVessels = useCallback(async () => {
     try {
@@ -55,19 +64,78 @@ export default function WarRoom() {
     return () => clearInterval(interval)
   }, [fetchVessels])
 
-  const handleSimulate = useCallback((scenarioId: string, data: unknown) => {
+  // Supabase real-time: crisis broadcast + presence
+  useEffect(() => {
+    const sb = createSupabaseClient()
+    if (!sb) return
+    sbRef.current = sb
+
+    // Subscribe to crisis simulation broadcasts
+    const simChannel = sb
+      .channel('simulation_results')
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'simulation_results' },
+        (payload) => {
+          const row = payload.new as {
+            scenario_id: string
+            scenario_data: SimulationResult['scenario']
+            procurement_data: SimulationResult['procurement']
+            active: boolean
+          }
+          if (row.active && row.scenario_id !== activeScenario) {
+            setActiveScenario(row.scenario_id)
+            setSimulationResult({ scenario: row.scenario_data, procurement: row.procurement_data })
+            setOverallRisk(RISK_MAP[row.scenario_id] ?? 50)
+          }
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'simulation_results' },
+        (payload) => {
+          const row = payload.new as { active: boolean }
+          if (!row.active) {
+            setActiveScenario(null)
+            setSimulationResult(null)
+            setOverallRisk(42)
+          }
+        }
+      )
+      .subscribe((status) => setRtConnected(status === 'SUBSCRIBED'))
+
+    // Presence: live viewer count
+    const presenceKey = Math.random().toString(36).slice(2)
+    const presenceChannel = sb.channel('war_room', {
+      config: { presence: { key: presenceKey } },
+    })
+    presenceChannel
+      .on('presence', { event: 'sync' }, () => {
+        setLiveViewers(Object.keys(presenceChannel.presenceState()).length)
+      })
+      .subscribe(async (status) => {
+        if (status === 'SUBSCRIBED') {
+          await presenceChannel.track({ joined_at: new Date().toISOString() })
+        }
+      })
+
+    return () => {
+      sb.removeChannel(simChannel)
+      sb.removeChannel(presenceChannel)
+    }
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
+  const handleSimulate = useCallback(async (scenarioId: string, data: unknown) => {
     if (scenarioId === 'reset') {
       setActiveScenario(null)
       setSimulationResult(null)
       setOverallRisk(42)
+      await fetch('/api/simulate', { method: 'DELETE' }).catch(() => {})
       return
     }
     setActiveScenario(scenarioId)
     setSimulationResult(data as SimulationResult)
-    const impacts: Record<string, number> = {
-      hormuz_closure: 94, redsea_shutdown: 72, opec_cut: 65, combined_crisis: 99
-    }
-    setOverallRisk(impacts[scenarioId] ?? 50)
+    setOverallRisk(RISK_MAP[scenarioId] ?? 50)
   }, [])
 
   const riskColor = overallRisk >= 80 ? '#ef4444' : overallRisk >= 60 ? '#f97316' : overallRisk >= 40 ? '#eab308' : '#22c55e'
@@ -95,6 +163,13 @@ export default function WarRoom() {
         </div>
 
         <div className="ml-auto flex items-center gap-4">
+          {rtConnected && (
+            <div className="flex items-center gap-1.5 text-[10px] text-green-400 px-2 py-1 rounded-full bg-green-500/10 border border-green-500/20">
+              <Radio className="w-3 h-3 animate-pulse" />
+              <span>LIVE SYNC</span>
+              <span className="text-slate-500">· {liveViewers} analyst{liveViewers !== 1 ? 's' : ''} online</span>
+            </div>
+          )}
           <div className="flex items-center gap-1.5 text-[10px] text-slate-500">
             <Wifi className="w-3 h-3 text-green-400" />
             <span>{vessels.length} vessels tracked</span>
@@ -130,13 +205,13 @@ export default function WarRoom() {
             onVesselClick={setSelectedVessel}
           />
 
-          {/* Overlay stats */}
+          {/* Corridor risk badges */}
           <div className="absolute bottom-4 left-4 flex gap-2 flex-wrap">
             {[
               { label: 'Hormuz', risk: 78, color: '#ef4444' },
               { label: 'Red Sea', risk: 65, color: '#f97316' },
               { label: 'Cape', risk: 12, color: '#22c55e' },
-            ].map(r => (
+            ].map((r) => (
               <div key={r.label} className="bg-[#0a0e1a]/90 border border-slate-700 rounded-lg px-3 py-1.5 flex items-center gap-2">
                 <span className="w-2 h-2 rounded-full" style={{ background: r.color }} />
                 <span className="text-[10px] text-slate-400">{r.label}</span>
@@ -182,7 +257,7 @@ export default function WarRoom() {
         {/* Right column */}
         <div className="w-80 shrink-0 border-l border-slate-800 flex flex-col overflow-hidden">
           <div className="flex border-b border-slate-800">
-            {(['procurement', 'vessels'] as const).map(tab => (
+            {(['procurement', 'vessels'] as const).map((tab) => (
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}

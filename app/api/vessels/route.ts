@@ -1,29 +1,51 @@
 import { NextResponse } from 'next/server'
 import { MOCK_VESSELS } from '@/lib/mock-data'
+import { createSupabaseClient } from '@/lib/supabase'
 
 export async function GET() {
-  // Try AISHub API first, fall back to mock data
-  try {
-    const apiKey = process.env.AISHUB_API_KEY
-    if (apiKey) {
-      const res = await fetch(
-        `https://data.aishub.net/ws.php?username=${apiKey}&format=1&output=json&compress=0&latmin=0&latmax=30&lonmin=40&lonmax=75`,
-        { next: { revalidate: 60 } }
-      )
-      if (res.ok) {
-        const data = await res.json()
-        return NextResponse.json({ vessels: data, source: 'live' })
-      }
-    }
-  } catch { /* fall through to mock */ }
+  const sb = createSupabaseClient()
 
-  // Add slight random drift to mock positions to simulate movement
-  const animated = MOCK_VESSELS.map(v => ({
+  if (sb) {
+    const { data: existing } = await sb.from('vessels').select('*')
+
+    if (existing && existing.length > 0) {
+      // Drift positions to simulate movement and persist back
+      const drifted = existing.map((v) => ({
+        ...v,
+        lat: v.lat + (Math.random() - 0.5) * 0.05,
+        lng: v.lng + (Math.random() - 0.5) * 0.05,
+        speed: +(v.speed + (Math.random() - 0.5) * 0.4).toFixed(1),
+        updated_at: new Date().toISOString(),
+      }))
+      await sb.from('vessels').upsert(drifted)
+
+      return NextResponse.json({
+        vessels: drifted.map((v) => ({
+          id: v.id, name: v.name, lat: v.lat, lng: v.lng,
+          speed: v.speed, type: v.type, cargo: v.cargo,
+          origin: v.origin, destination: v.destination, eta: v.eta,
+          riskZone: v.risk_zone,
+        })),
+        source: 'supabase',
+      })
+    }
+
+    // Seed vessels table on first run
+    const seedRows = MOCK_VESSELS.map((v) => ({
+      id: v.id, name: v.name, lat: v.lat, lng: v.lng,
+      speed: v.speed, type: v.type, cargo: v.cargo,
+      origin: v.origin, destination: v.destination, eta: v.eta,
+      risk_zone: v.riskZone,
+    }))
+    await sb.from('vessels').upsert(seedRows)
+  }
+
+  // Fallback: mock with drift
+  const animated = MOCK_VESSELS.map((v) => ({
     ...v,
     lat: v.lat + (Math.random() - 0.5) * 0.05,
     lng: v.lng + (Math.random() - 0.5) * 0.05,
-    speed: v.speed + (Math.random() - 0.5) * 0.5,
+    speed: +(v.speed + (Math.random() - 0.5) * 0.4).toFixed(1),
   }))
-
   return NextResponse.json({ vessels: animated, source: 'mock' })
 }
