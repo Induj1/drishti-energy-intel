@@ -71,6 +71,25 @@ Tap any NFC card → instant mobile briefing at `/nfc` — risk score, price, SP
 
 ---
 
+## 🎬 Live Demo Walkthrough
+
+**[→ Open War Room](https://drishti-intel.vercel.app)** · No login required
+
+| Step | What to do | What you'll see |
+|---|---|---|
+| **1** | Open the war room | 3D globe with 12 oil tankers, animated shipping lanes, glowing vessel trails |
+| **2** | Click **▶ Demo Mode** (top-right header) | Full-screen crisis alert fires — Hormuz Closure activates, Brent price chart spikes |
+| **3** | Wait 3 seconds for modal to dismiss | GPT-4o-mini generates procurement recommendations in the right panel |
+| **4** | Watch the globe | Camera pans to Strait of Hormuz, vessels in risk zones turn red |
+| **5** | After 10s, second alert fires | Escalates to Combined Crisis — Brent +48%, supply -92% |
+| **6** | Open a second browser tab | Both tabs show the crisis simultaneously via Supabase real-time sync |
+| **7** | Visit [/mobile](https://drishti-intel.vercel.app/mobile) on your phone | Full mobile war room — same live data, crisis triggers |
+| **8** | Tap [/nfc](https://drishti-intel.vercel.app/nfc) | NFC card briefing — risk score, live Brent, SPR gauge, intelligence feed |
+
+> **Fastest path to wow:** Step 1 → Step 2 → watch the 10-second escalation sequence.
+
+---
+
 ## Architecture
 
 ```
