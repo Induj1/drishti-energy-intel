@@ -1,11 +1,12 @@
 import { NextResponse } from 'next/server'
 import { SIMULATION_SCENARIOS } from '@/lib/mock-data'
-import { generateProcurementPlan } from '@/lib/openai'
+import { runAgentMesh } from '@/lib/agents'
+import { generateProcurementPlan } from '@/lib/ai'
 import { createSupabaseClient } from '@/lib/supabase'
 import { broadcastCrisisAlert } from '@/telegram/bot'
 
 const RISK_MAP: Record<string, number> = {
-  hormuz_closure: 94, redsea_shutdown: 72, opec_cut: 65, combined_crisis: 99
+  hormuz_closure: 94, redsea_shutdown: 72, opec_cut: 65, energy_port_cyber_shock: 97, combined_crisis: 99
 }
 
 export async function POST(req: Request) {
@@ -22,6 +23,7 @@ export async function POST(req: Request) {
     scenario.impacts.affectedVolume,
     scenario.impacts.priceChange
   )
+  const agentRun = await runAgentMesh({ scenarioId, role: body.role ?? 'minister' })
 
   // Broadcast crisis to all connected clients via Supabase real-time
   const sb = createSupabaseClient()
@@ -47,6 +49,7 @@ export async function POST(req: Request) {
   return NextResponse.json({
     scenario,
     procurement,
+    agentRun,
     timestamp: new Date().toISOString(),
   })
 }

@@ -1,0 +1,7 @@
+services:
+  sentinelmesh-crisis-agent:
+    build: .
+    ports:
+      - "8095:5000"
+    environment:
+      DRISHTI_APP_URL: ${DRISHTI_APP_URL:-http://host.docker.internal:3001}

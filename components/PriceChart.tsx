@@ -9,7 +9,7 @@ export default function PriceChart({ crisisActive, priceImpact }: { crisisActive
   const [data, setData] = useState<{ t: number; price: number }[]>(() =>
     Array.from({ length: 24 }, (_, i) => ({
       t: i,
-      price: +(BASE + (Math.random() - 0.5) * 1.6).toFixed(2),
+      price: +(BASE + Math.sin(i * 0.62) * 0.7).toFixed(2),
     }))
   )
   const tRef = useRef(24)
@@ -31,7 +31,6 @@ export default function PriceChart({ crisisActive, priceImpact }: { crisisActive
 
   const current = data[data.length - 1]?.price ?? BASE
   const strokeColor = crisisActive ? '#ff3232' : '#00d4ff'
-  const fillColor = crisisActive ? 'rgba(255,50,50,0.18)' : 'rgba(0,212,255,0.18)'
   const change = current - BASE
   const pct = ((change / BASE) * 100).toFixed(1)
 

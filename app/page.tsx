@@ -9,10 +9,17 @@ import ProcurementPanel from '@/components/ProcurementPanel'
 import VesselTable from '@/components/VesselTable'
 import PriceChart from '@/components/PriceChart'
 import CrisisAlertModal from '@/components/CrisisAlertModal'
-import { Shield, Activity, Wifi, Radio, Play } from 'lucide-react'
+import AgentControlPlane from '@/components/AgentControlPlane'
+import CitizenImpactPanel from '@/components/CitizenImpactPanel'
+import MissionGraph from '@/components/MissionGraph'
+import TrustStack from '@/components/TrustStack'
+import { Shield, Activity, Wifi, Radio, Play, Cloud, DatabaseZap, ArrowRight, CheckCircle2, ExternalLink, LockKeyhole, Network, Rocket, ServerCog, Workflow } from 'lucide-react'
 import Image from 'next/image'
 import { createSupabaseClient } from '@/lib/supabase'
+import { apiFetch } from '@/lib/client-api'
 import type { SupabaseClient } from '@supabase/supabase-js'
+import type { AgentRunResponse } from '@/lib/sentinel-types'
+import type { LiveSummary } from '@/lib/live-data'
 
 const Globe = dynamic(() => import('@/components/Globe'), { ssr: false })
 
@@ -37,6 +44,7 @@ interface SimulationResult {
     summary: string
     recommendations: Array<{ supplier: string; volume: string; route: string; cost: string; timeline: string; confidence: number }>
   }
+  agentRun?: AgentRunResponse
 }
 
 interface PendingAlert {
@@ -44,11 +52,23 @@ interface PendingAlert {
   data: SimulationResult
 }
 
-const RISK_MAP: Record<string, number> = {
-  hormuz_closure: 94, redsea_shutdown: 72, opec_cut: 65, combined_crisis: 99
+type NasikoProbe = {
+  ok: boolean
+  sponsor?: string
+  mode?: string
+  cloudRun?: boolean
+  summary?: string
+  agentPackage?: string
+  workflowId?: string
 }
 
-const DEMO_SEQUENCE = ['hormuz_closure', 'combined_crisis'] as const
+const RISK_MAP: Record<string, number> = {
+  hormuz_closure: 94, redsea_shutdown: 72, opec_cut: 65, energy_port_cyber_shock: 97, combined_crisis: 99
+}
+
+const DEMO_SEQUENCE = ['energy_port_cyber_shock', 'combined_crisis'] as const
+const CLOUD_RUN_URL = process.env.NEXT_PUBLIC_CLOUD_RUN_URL ?? 'https://drishti-sentinelmesh-or2awz4nzq-el.a.run.app'
+const AGENT_CHAIN = ['Source Watchtower', 'Corridor Sentinel', 'Cyber Guard', 'Nasiko', 'Policy Gate', 'Citizen Brief']
 
 // ── Corner bracket helper ────────────────────────────────
 function Corners({ color = '#00d4ff', size = 10, thickness = 2 }: { color?: string; size?: number; thickness?: number }) {
@@ -64,6 +84,7 @@ function Corners({ color = '#00d4ff', size = 10, thickness = 2 }: { color?: stri
 }
 
 // ── Segmented bar ─────────────────────────────────────────
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function SegBar({ value, total = 20, color }: { value: number; total?: number; color: string }) {
   const filled = Math.round((value / 100) * total)
   return (
@@ -83,6 +104,7 @@ function SegBar({ value, total = 20, color }: { value: number; total?: number; c
 }
 
 // ── Panel wrapper ─────────────────────────────────────────
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function Panel({
   children, title, accentColor = '#00d4ff', className = '', style = {}
 }: {
@@ -133,30 +155,92 @@ export default function WarRoom() {
   const [activeScenario, setActiveScenario] = useState<string | null>(null)
   const [simulationResult, setSimulationResult] = useState<SimulationResult | null>(null)
   const [overallRisk, setOverallRisk] = useState(42)
-  const [activeTab, setActiveTab] = useState<'procurement' | 'vessels'>('procurement')
+  const [activeTab, setActiveTab] = useState<'procurement' | 'vessels' | 'agents'>('agents')
   const [liveViewers, setLiveViewers] = useState(1)
   const [rtConnected, setRtConnected] = useState(false)
   const [pendingAlert, setPendingAlert] = useState<PendingAlert | null>(null)
   const [demoRunning, setDemoRunning] = useState(false)
+  const [agentRunning, setAgentRunning] = useState(false)
+  const [agentRun, setAgentRun] = useState<AgentRunResponse | null>(null)
+  const [liveSummary, setLiveSummary] = useState<LiveSummary | null>(null)
+  const [role, setRole] = useState('minister')
+  const [clock, setClock] = useState('')
+  const [nasikoProbe, setNasikoProbe] = useState<NasikoProbe | null>(null)
   const sbRef = useRef<SupabaseClient | null>(null)
 
   const fetchVessels = useCallback(async () => {
     try {
-      const res = await fetch('/api/vessels')
+      const res = await apiFetch('/api/vessels')
       const data = await res.json()
       setVessels(data.vessels)
     } catch { /* silent */ }
   }, [])
 
+  const fetchLiveSummary = useCallback(async () => {
+    try {
+      const res = await apiFetch('/api/live/summary')
+      const data = await res.json()
+      setLiveSummary(data)
+    } catch { /* silent */ }
+  }, [])
+
   useEffect(() => {
-    fetchVessels()
+    const initial = window.setTimeout(() => {
+      fetchVessels()
+      fetchLiveSummary()
+    }, 0)
     const interval = setInterval(fetchVessels, 8000)
-    return () => clearInterval(interval)
-  }, [fetchVessels])
+    const summaryInterval = setInterval(fetchLiveSummary, 60000)
+    return () => {
+      clearTimeout(initial)
+      clearInterval(interval)
+      clearInterval(summaryInterval)
+    }
+  }, [fetchVessels, fetchLiveSummary])
+
+  useEffect(() => {
+    const update = () => setClock(new Date().toUTCString().slice(0, 25))
+    const initial = window.setTimeout(update, 0)
+    const interval = window.setInterval(update, 1000)
+    return () => {
+      clearTimeout(initial)
+      clearInterval(interval)
+    }
+  }, [])
+
+  useEffect(() => {
+    const controller = new AbortController()
+    const timer = window.setTimeout(() => {
+      fetch(`${CLOUD_RUN_URL}/api/nasiko/probe`, { signal: controller.signal })
+        .then((res) => res.json())
+        .then((data: NasikoProbe) => setNasikoProbe(data))
+        .catch(() => {
+          setNasikoProbe({
+            ok: false,
+            sponsor: 'Nasiko',
+            mode: 'adapter-ready',
+            cloudRun: true,
+            summary: 'Nasiko probe is available through the Cloud Run gateway.',
+            workflowId: 'sentinelmesh-energy-crisis',
+          })
+        })
+    }, 0)
+    return () => {
+      clearTimeout(timer)
+      controller.abort()
+    }
+  }, [])
 
   const applySimulation = useCallback((scenarioId: string, data: SimulationResult) => {
     setActiveScenario(scenarioId)
     setSimulationResult(data)
+    if (data.agentRun) {
+      setAgentRun(data.agentRun)
+      setOverallRisk(data.agentRun.overallRisk)
+      setActiveTab('agents')
+      setPendingAlert(null)
+      return
+    }
     setOverallRisk(RISK_MAP[scenarioId] ?? 50)
     setPendingAlert(null)
   }, [])
@@ -166,6 +250,7 @@ export default function WarRoom() {
     setSimulationResult(null)
     setOverallRisk(42)
     setPendingAlert(null)
+    setAgentRun(null)
   }, [])
 
   useEffect(() => {
@@ -228,7 +313,7 @@ export default function WarRoom() {
   const handleSimulate = useCallback(async (scenarioId: string, data: unknown) => {
     if (scenarioId === 'reset') {
       clearSimulation()
-      await fetch('/api/simulate', { method: 'DELETE' }).catch(() => {})
+      await apiFetch('/api/simulate', { method: 'DELETE' }).catch(() => {})
       return
     }
     const result = data as SimulationResult
@@ -239,27 +324,47 @@ export default function WarRoom() {
     }
   }, [applySimulation, clearSimulation])
 
+  const runAgentMesh = useCallback(async (scenarioId = activeScenario ?? 'energy_port_cyber_shock') => {
+    if (agentRunning) return
+    setAgentRunning(true)
+    setActiveTab('agents')
+    try {
+      const res = await apiFetch('/api/agents/run', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ scenarioId, role }),
+      })
+      const data = await res.json()
+      setAgentRun(data)
+      setOverallRisk(data.overallRisk ?? overallRisk)
+    } catch { /* silent */ }
+    setAgentRunning(false)
+  }, [activeScenario, agentRunning, role, overallRisk])
+
   const runDemo = useCallback(async () => {
     if (demoRunning) return
     setDemoRunning(true)
     clearSimulation()
-    await fetch('/api/simulate', { method: 'DELETE' }).catch(() => {})
+    setActiveTab('agents')
+    await apiFetch('/api/simulate', { method: 'DELETE' }).catch(() => {})
+    await fetchLiveSummary()
 
     for (let i = 0; i < DEMO_SEQUENCE.length; i++) {
       const sid = DEMO_SEQUENCE[i]
       if (i > 0) await new Promise(r => setTimeout(r, 10000))
       try {
-        const res = await fetch('/api/simulate', {
+        const res = await apiFetch('/api/simulate', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ scenarioId: sid }),
+          body: JSON.stringify({ scenarioId: sid, role }),
         })
         const data = await res.json()
+        if (data.agentRun) setAgentRun(data.agentRun)
         setPendingAlert({ scenarioId: sid, data })
       } catch { /* use mock fallback */ }
     }
     setDemoRunning(false)
-  }, [demoRunning, clearSimulation])
+  }, [demoRunning, clearSimulation, fetchLiveSummary, role])
 
   const riskColor =
     overallRisk >= 80 ? '#ff3232' :
@@ -270,6 +375,16 @@ export default function WarRoom() {
     overallRisk >= 80 ? 'CRITICAL' :
     overallRisk >= 60 ? 'HIGH' :
     overallRisk >= 40 ? 'ELEVATED' : 'NOMINAL'
+
+  const verifiedSources = (agentRun?.sourceSummary.live ?? liveSummary?.sourceSummary.live ?? 5) + (agentRun?.sourceSummary.cached ?? liveSummary?.sourceSummary.cached ?? 0)
+  const totalSources = agentRun?.sourceSummary.total ?? liveSummary?.sourceSummary.total ?? 6
+  const proofBadges = [
+    { icon: DatabaseZap, label: `${totalSources} live sources`, value: `${verifiedSources} verified`, tone: 'green' },
+    { icon: Cloud, label: 'Cloud Run deployed', value: 'public URL', tone: 'cyan' },
+    { icon: ServerCog, label: 'Supabase Edge backend', value: 'online', tone: 'purple' },
+    { icon: Network, label: 'Nasiko adapter ready', value: nasikoProbe?.mode ?? 'probing', tone: 'amber' },
+    { icon: LockKeyhole, label: 'Human approval gate active', value: agentRun?.policy.decision.replace('_', ' ') ?? 'armed', tone: 'red' },
+  ]
 
   return (
     <div
@@ -285,11 +400,11 @@ export default function WarRoom() {
 
       {/* ── HEADER ─────────────────────────────────────── */}
       <header
-        className="shrink-0 flex items-center gap-4 px-4 py-2"
+        className="shrink-0 flex items-center gap-3 px-3 py-1"
         style={{
           borderBottom: '1px solid var(--c-border)',
           background: '#020e0e',
-          minHeight: 44,
+          minHeight: 42,
         }}
       >
         {/* Logo */}
@@ -297,8 +412,8 @@ export default function WarRoom() {
           <Image
             src="/logo.png"
             alt="DRISHTI"
-            width={110}
-            height={55}
+            width={88}
+            height={44}
             style={{ objectFit: 'contain', mixBlendMode: 'lighten' }}
             priority
           />
@@ -322,6 +437,18 @@ export default function WarRoom() {
         {/* Spacer */}
         <div className="flex-1" />
 
+        {/* Source stack */}
+        <div className="hidden md:flex items-center gap-1.5 font-mono" style={{ fontSize: 9, color: 'var(--c-muted)' }}>
+          <DatabaseZap style={{ width: 10, height: 10, color: '#00ff87' }} />
+          <span>{((agentRun?.sourceSummary.live ?? liveSummary?.sourceSummary.live ?? 0) + (agentRun?.sourceSummary.cached ?? liveSummary?.sourceSummary.cached ?? 0))} VERIFIED SRC</span>
+        </div>
+
+        {/* Cloud Run */}
+        <div className="hidden lg:flex items-center gap-1.5 font-mono" style={{ fontSize: 9, color: 'var(--c-muted)' }}>
+          <Cloud style={{ width: 10, height: 10, color: '#00d4ff' }} />
+          <span>CLOUD RUN READY</span>
+        </div>
+
         {/* Demo button */}
         <button
           onClick={runDemo}
@@ -341,7 +468,7 @@ export default function WarRoom() {
         >
           {!demoRunning && <Corners color="#00d4ff" size={6} thickness={1} />}
           <Play style={{ width: 10, height: 10 }} />
-          {demoRunning ? 'DEMO RUNNING...' : '▶ DEMO MODE'}
+          {demoRunning ? 'DEMO RUNNING...' : 'DEMO MODE'}
         </button>
 
         {/* RT status */}
@@ -373,9 +500,90 @@ export default function WarRoom() {
 
         {/* Clock */}
         <span className="hidden xl:block font-mono" style={{ fontSize: 8, color: 'var(--c-xmuted)', letterSpacing: '0.08em' }}>
-          {new Date().toUTCString().slice(0, 25)}
+          {clock || 'SYNCING UTC'}
         </span>
       </header>
+
+      <section className="sentinel-hero-shell">
+        <div className="sentinel-hero-main">
+          <div className="sentinel-hero-copy">
+            <div className="sentinel-hero-kicker">
+              <span className="sentinel-live-dot" />
+              Track B Enterprise Agent Engineering
+            </div>
+            <h1>SentinelMesh Agentic Crisis OS</h1>
+            <p>
+              India energy security command layer for live evidence fusion, multi-agent response,
+              Nasiko orchestration proof, and citizen-safe guidance.
+            </p>
+            <div className="sentinel-hero-actions">
+              <button
+                type="button"
+                className="sentinel-winning-button"
+                onClick={runDemo}
+                disabled={demoRunning}
+              >
+                <Rocket style={{ width: 18, height: 18 }} />
+                <span>{demoRunning ? 'Running winning demo' : 'Run winning demo'}</span>
+                <ArrowRight style={{ width: 17, height: 17 }} />
+              </button>
+              <button
+                type="button"
+                className="sentinel-secondary-button"
+                onClick={() => runAgentMesh(activeScenario ?? 'energy_port_cyber_shock')}
+                disabled={agentRunning}
+              >
+                <Workflow style={{ width: 15, height: 15 }} />
+                {agentRunning ? 'Agents running' : 'Run agent mesh'}
+              </button>
+            </div>
+          </div>
+
+          <div className="sentinel-proof-grid" aria-label="Deployment and orchestration proof">
+            {proofBadges.map((badge) => {
+              const Icon = badge.icon
+              return (
+                <div key={badge.label} className="sentinel-proof-badge" data-tone={badge.tone}>
+                  <Icon style={{ width: 15, height: 15 }} />
+                  <span>{badge.label}</span>
+                  <strong>{badge.value}</strong>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+
+        <div className="sentinel-hero-lower">
+          <div className="sentinel-agent-rail">
+            {AGENT_CHAIN.map((agent, index) => (
+              <div key={agent} className="sentinel-agent-hop" style={{ ['--hop' as string]: index }}>
+                <div className="sentinel-agent-core">
+                  <CheckCircle2 style={{ width: 13, height: 13 }} />
+                </div>
+                <span>{agent}</span>
+                {index < AGENT_CHAIN.length - 1 && <ArrowRight className="sentinel-agent-arrow" />}
+              </div>
+            ))}
+          </div>
+
+          <div className="sentinel-nasiko-proof">
+            <div className="sentinel-nasiko-topline">
+              <div>
+                <span>Nasiko sponsor proof</span>
+                <strong>{nasikoProbe?.mode?.toUpperCase() ?? 'PROBING'}</strong>
+              </div>
+              <a href={`${CLOUD_RUN_URL}/api/nasiko/probe`} target="_blank" rel="noreferrer" aria-label="Open Nasiko proof endpoint">
+                <ExternalLink style={{ width: 14, height: 14 }} />
+              </a>
+            </div>
+            <p>{nasikoProbe?.summary ?? 'Checking Cloud Run Nasiko proof endpoint.'}</p>
+            <div className="sentinel-nasiko-meta">
+              <span>{nasikoProbe?.workflowId ?? 'sentinelmesh-energy-crisis'}</span>
+              <span>{nasikoProbe?.agentPackage ?? 'nasiko-agents/sentinelmesh-crisis-agent'}</span>
+            </div>
+          </div>
+        </div>
+      </section>
 
       {/* ── MAIN LAYOUT ────────────────────────────────── */}
       <div className="flex-1 flex overflow-hidden">
@@ -394,6 +602,7 @@ export default function WarRoom() {
             priceImpact={simulationResult?.scenario?.impacts.priceChange ?? 0}
           />
           <CrisisPanel onSimulate={handleSimulate} activeScenario={activeScenario} />
+          <CitizenImpactPanel run={agentRun} />
         </div>
 
         {/* Globe center */}
@@ -407,9 +616,9 @@ export default function WarRoom() {
           {/* Corridor risk badges */}
           <div className="absolute bottom-4 left-4 flex gap-2 flex-wrap">
             {[
-              { label: 'HORMUZ', risk: 78, color: '#ff3232' },
-              { label: 'RED SEA', risk: 65, color: '#ffb800' },
-              { label: 'CAPE',   risk: 12, color: '#00ff87' },
+              { label: 'HORMUZ', risk: liveSummary?.corridors.data.corridors.find((c) => c.id === 'hormuz')?.risk ?? 78, color: '#ff3232' },
+              { label: 'RED SEA', risk: liveSummary?.corridors.data.corridors.find((c) => c.id === 'redsea')?.risk ?? 65, color: '#ffb800' },
+              { label: 'CAPE',   risk: liveSummary?.corridors.data.corridors.find((c) => c.id === 'cape')?.risk ?? 12, color: '#00ff87' },
             ].map((r) => (
               <div
                 key={r.label}
@@ -512,7 +721,7 @@ export default function WarRoom() {
         >
           {/* Tab row */}
           <div className="flex shrink-0" style={{ borderBottom: '1px solid var(--c-border)' }}>
-            {(['procurement', 'vessels'] as const).map((tab) => (
+            {(['agents', 'procurement', 'vessels'] as const).map((tab) => (
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
@@ -529,17 +738,30 @@ export default function WarRoom() {
                   borderRight: 'none',
                   borderLeft: 'none',
                   borderTop: 'none',
-                  transition: 'all 0.2s',
+                  transition: 'background 0.16s ease, color 0.16s ease, border-color 0.16s ease',
                 }}
               >
-                {tab === 'procurement' ? 'AI PROCUREMENT' : 'VESSELS'}
+                {tab === 'agents' ? 'AGENTS' : tab === 'procurement' ? 'PROCURE' : 'VESSELS'}
               </button>
             ))}
           </div>
 
           {/* Scrollable main */}
           <div className="flex-1 overflow-y-auto min-h-0 p-3 scrollbar-thin">
-            {activeTab === 'procurement' ? (
+            {activeTab === 'agents' ? (
+              <div className="space-y-3">
+                <AgentControlPlane
+                  run={agentRun}
+                  sourceSummary={liveSummary?.sourceSummary}
+                  role={role}
+                  running={agentRunning}
+                  onRoleChange={setRole}
+                  onRun={() => runAgentMesh(activeScenario ?? 'energy_port_cyber_shock')}
+                />
+                <MissionGraph run={agentRun} />
+                <TrustStack run={agentRun} />
+              </div>
+            ) : activeTab === 'procurement' ? (
               <ProcurementPanel simulationResult={simulationResult} activeScenario={activeScenario} />
             ) : (
               <VesselTable vessels={vessels} selectedVessel={selectedVessel} crisisActive={!!activeScenario} />

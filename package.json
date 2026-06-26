@@ -5,6 +5,8 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
+    "build:static": "node scripts/build-static.mjs",
+    "deploy:gcp-frontend": "node scripts/deploy-gcp-frontend.mjs",
     "start": "next start",
     "lint": "eslint"
   },

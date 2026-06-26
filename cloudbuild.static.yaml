@@ -1,0 +1,23 @@
+steps:
+  - name: node:22-alpine
+    entrypoint: sh
+    args:
+      - -c
+      - |
+        npm ci
+        NEXT_PUBLIC_DRISHTI_API_BASE="https://drishti-sentinelmesh-or2awz4nzq-el.a.run.app" \
+        NEXT_PUBLIC_SUPABASE_URL="https://bkzbcolbucbvnvyqveoe.supabase.co" \
+        NEXT_PUBLIC_SUPABASE_ANON_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJremJjb2xidWNidm52eXF2ZW9lIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIxMTkwOTEsImV4cCI6MjA5NzY5NTA5MX0.BtfV46CsCH32Vzw3aEGxazLMi059U_YQ3-mychZhgHA" \
+        NEXT_PUBLIC_CLOUD_RUN_URL="https://drishti-sentinelmesh-or2awz4nzq-el.a.run.app" \
+        NEXT_PUBLIC_GEMINI_BADGE="live" \
+        npm run build:static
+  - name: gcr.io/cloud-builders/docker
+    args:
+      - build
+      - -f
+      - Dockerfile.static
+      - -t
+      - asia-south1-docker.pkg.dev/drishti-500608/drishti-containers/drishti-sentinelmesh-cloudrun:latest
+      - .
+images:
+  - asia-south1-docker.pkg.dev/drishti-500608/drishti-containers/drishti-sentinelmesh-cloudrun:latest

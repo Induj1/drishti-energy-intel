@@ -1,115 +1,119 @@
-/**
- * ASSET TRACKING — vessels.tsx
- * Mission-control vessel telemetry feed.
- */
-
-import React, { useState, useCallback } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import {
-  View,
-  Text,
   FlatList,
   RefreshControl,
   StyleSheet,
+  Text,
+  View,
 } from 'react-native';
 import { useFocusEffect } from 'expo-router';
 import { COLORS, FONT_MONO } from '../../constants';
-import { DataRow } from '../../components/hud';
-import { fetchVessels, type Vessel } from '../../lib/api';
+import {
+  DataRow,
+  MetricCard,
+  Panel,
+  SegBar,
+  SourceRow,
+  StatusLight,
+  riskColor,
+} from '../../components/hud';
+import {
+  fetchLiveSummary,
+  fetchVessels,
+  type LiveSummary,
+  type Vessel,
+} from '../../lib/api';
 
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
-
-function riskZoneColor(zone: string): string {
+function zoneRisk(zone: string): number {
   const z = (zone ?? '').toLowerCase();
-  if (z.includes('hormuz')) return COLORS.red;
-  if (z.includes('red') || z.includes('redsea')) return COLORS.amber;
-  if (z.includes('cape')) return COLORS.green;
-  return COLORS.cyan;
+  if (z.includes('hormuz')) return 88;
+  if (z.includes('red')) return 72;
+  if (z.includes('cape')) return 28;
+  return 18;
 }
 
-function riskZoneLabel(zone: string): string {
+function zoneLabel(zone: string): string {
   const z = (zone ?? '').toLowerCase();
   if (z.includes('hormuz')) return 'HORMUZ';
-  if (z.includes('red') || z.includes('redsea')) return 'RED SEA';
+  if (z.includes('red')) return 'RED SEA';
   if (z.includes('cape')) return 'CAPE';
   return 'SAFE';
 }
 
-// ---------------------------------------------------------------------------
-// Vessel card
-// ---------------------------------------------------------------------------
-
 function VesselCard({ item }: { item: Vessel }) {
-  const zColor = riskZoneColor(item.riskZone);
-  const zLabel = riskZoneLabel(item.riskZone);
+  const risk = zoneRisk(item.riskZone);
+  const color = riskColor(risk);
+  const confidence = Math.round((item.confidence ?? 0.58) * 100);
+
   return (
     <View style={styles.card}>
-      {/* left color bar = risk zone color */}
-      <View style={[styles.cardLeftBar, { backgroundColor: zColor }]} />
+      <View style={[styles.leftBar, { backgroundColor: color }]} />
       <View style={styles.cardBody}>
-        {/* top row: name + risk zone badge */}
         <View style={styles.cardTop}>
-          <Text style={[styles.vesselName, { color: COLORS.cyan }]} numberOfLines={1}>
-            {item.name}
-          </Text>
-          <View style={[styles.riskBadge, { borderColor: zColor }]}>
-            <Text style={[styles.riskBadgeText, { color: zColor }]}>
-              {'[ '}
-              {zLabel}
-              {' ]'}
+          <View style={styles.nameBlock}>
+            <Text style={styles.vesselName} numberOfLines={1}>
+              {item.name}
             </Text>
+            <Text style={styles.vesselMeta} numberOfLines={1}>
+              {item.type} / {item.cargo}
+            </Text>
+          </View>
+          <View style={[styles.zoneBadge, { borderColor: color }]}>
+            <Text style={[styles.zoneBadgeText, { color }]}>{zoneLabel(item.riskZone)}</Text>
           </View>
         </View>
 
-        {/* type · cargo */}
-        <Text style={styles.vesselMeta}>
-          {item.type}
-          {' · '}
-          {item.cargo}
-        </Text>
-
-        {/* route */}
         <View style={styles.routeRow}>
-          <Text style={styles.routeOrigin} numberOfLines={1}>
+          <Text style={styles.routeCity} numberOfLines={1}>
             {item.origin}
           </Text>
-          <Text style={styles.routeArrow}> ──→ </Text>
-          <Text style={styles.routeDest} numberOfLines={1}>
+          <Text style={styles.routeArrow}>-&gt;</Text>
+          <Text style={[styles.routeCity, styles.routeDest]} numberOfLines={1}>
             {item.destination}
           </Text>
         </View>
 
-        {/* bottom DataRows */}
-        <View style={styles.dataRowsWrap}>
+        <View style={styles.confidenceRow}>
+          <Text style={styles.confidenceLabel}>SOURCE CONFIDENCE</Text>
+          <Text style={[styles.confidenceValue, { color: riskColor(100 - confidence) }]}>
+            {confidence}%
+          </Text>
+        </View>
+        <SegBar value={confidence} color={riskColor(100 - confidence)} height={6} />
+
+        <View style={styles.dataBlock}>
           <DataRow label="ETA" value={item.eta} />
-          <DataRow label="SPEED" value={`${item.speed} KT`} />
-          <DataRow
-            label="COORDS"
-            value={`${item.lat.toFixed(2)}° / ${item.lng.toFixed(2)}°`}
-          />
+          <DataRow label="Speed" value={`${item.speed.toFixed(1)} kt`} />
+          <DataRow label="Coords" value={`${item.lat.toFixed(2)} / ${item.lng.toFixed(2)}`} />
+          {typeof item.heading === 'number' ? (
+            <DataRow label="Heading" value={`${Math.round(item.heading)} deg`} />
+          ) : null}
         </View>
       </View>
     </View>
   );
 }
 
-// ---------------------------------------------------------------------------
-// Screen
-// ---------------------------------------------------------------------------
-
 export default function VesselsScreen() {
   const [vessels, setVessels] = useState<Vessel[]>([]);
+  const [summary, setSummary] = useState<LiveSummary | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     try {
-      const data = await fetchVessels();
-      setVessels(data);
+      const live = await fetchLiveSummary();
+      setSummary(live);
+      setVessels(live.vessels.data.vessels);
       setError(null);
     } catch {
-      setError('TELEMETRY FEED UNAVAILABLE');
+      try {
+        const data = await fetchVessels();
+        setVessels(data);
+        setError('LIVE SUMMARY DEGRADED. USING VESSEL ENDPOINT.');
+      } catch {
+        setError('VESSEL TELEMETRY UNAVAILABLE');
+      }
     }
   }, []);
 
@@ -125,21 +129,27 @@ export default function VesselsScreen() {
     setRefreshing(false);
   }
 
+  const stats = useMemo(() => {
+    const high = vessels.filter((v) => zoneRisk(v.riskZone) >= 70).length;
+    const avgConfidence = vessels.length
+      ? Math.round(
+          (vessels.reduce((sum, v) => sum + (v.confidence ?? 0.58), 0) / vessels.length) * 100
+        )
+      : 0;
+    const modes = summary?.vessels.dataMode.toUpperCase() ?? 'SIMULATED';
+    return { high, avgConfidence, modes };
+  }, [summary, vessels]);
+
   return (
     <View style={styles.container}>
-      {/* ── Header ── */}
       <View style={styles.header}>
-        <View>
+        <View style={styles.headerLeft}>
           <Text style={styles.headerTitle}>ASSET TRACKING</Text>
-          <Text style={styles.headerCount}>
-            {String(vessels.length).padStart(2, '0')}
-            {' UNITS MONITORED'}
+          <Text style={styles.headerSub}>
+            {String(vessels.length).padStart(2, '0')} UNITS / {stats.modes}
           </Text>
         </View>
-        <View style={styles.trackingBadge}>
-          <View style={styles.trackingDot} />
-          <Text style={styles.trackingText}>TRACKING ACTIVE</Text>
-        </View>
+        <StatusLight color={COLORS.green} label="TRACKING" blink />
       </View>
 
       {error ? (
@@ -162,10 +172,43 @@ export default function VesselsScreen() {
             colors={[COLORS.cyan]}
           />
         }
+        ListHeaderComponent={
+          <View>
+            <View style={styles.metricGrid}>
+              <MetricCard
+                label="High Risk"
+                value={String(stats.high)}
+                sub="corridor exposure"
+                tone={stats.high ? COLORS.red : COLORS.green}
+              />
+              <MetricCard
+                label="Confidence"
+                value={`${stats.avgConfidence || '--'}%`}
+                sub={summary?.vessels.data.aisConfigured ? 'AIS enabled' : 'public evidence'}
+                tone={stats.avgConfidence >= 70 ? COLORS.green : COLORS.amber}
+              />
+            </View>
+
+            {summary?.vessels.data.caveat ? (
+              <Panel title="Evidence Caveat" rightLabel={summary.vessels.dataMode.toUpperCase()} accentColor={COLORS.amber}>
+                <Text style={styles.caveatText}>{summary.vessels.data.caveat}</Text>
+              </Panel>
+            ) : null}
+          </View>
+        }
+        ListFooterComponent={
+          summary?.vessels.sources.length ? (
+            <Panel title="Port And AIS Sources" rightLabel={`${summary.vessels.sources.length} links`} accentColor={COLORS.green}>
+              {summary.vessels.sources.slice(0, 5).map((source) => (
+                <SourceRow key={source.id} source={source} />
+              ))}
+            </Panel>
+          ) : null
+        }
         ListEmptyComponent={
           !error ? (
             <View style={styles.emptyState}>
-              <Text style={styles.emptyIcon}>{'[ - ]'}</Text>
+              <Text style={styles.emptyIcon}>[ - ]</Text>
               <Text style={styles.emptyText}>ACQUIRING VESSEL TELEMETRY...</Text>
             </View>
           ) : null
@@ -175,101 +218,80 @@ export default function VesselsScreen() {
   );
 }
 
-// ---------------------------------------------------------------------------
-// Styles
-// ---------------------------------------------------------------------------
-
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: COLORS.bg,
   },
-
-  // Header
   header: {
+    minHeight: 86,
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingTop: 54,
+    alignItems: 'flex-end',
+    gap: 12,
+    paddingTop: 44,
     paddingBottom: 12,
     paddingHorizontal: 12,
     borderBottomWidth: 1,
     borderBottomColor: COLORS.borderDim,
   },
+  headerLeft: {
+    flex: 1,
+    minWidth: 0,
+  },
   headerTitle: {
     fontFamily: FONT_MONO,
-    fontSize: 18,
+    fontSize: 19,
     color: COLORS.cyan,
-    letterSpacing: 4,
-    textTransform: 'uppercase',
+    fontWeight: '700',
   },
-  headerCount: {
+  headerSub: {
     fontFamily: FONT_MONO,
-    fontSize: 9,
+    fontSize: 10,
     color: COLORS.textMid,
-    letterSpacing: 2,
     marginTop: 4,
-    textTransform: 'uppercase',
   },
-  trackingBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 5,
-    borderWidth: 1,
-    borderColor: COLORS.green,
-    backgroundColor: '#001a0d',
-    paddingHorizontal: 8,
-    paddingVertical: 5,
-  },
-  trackingDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: COLORS.green,
-  },
-  trackingText: {
-    fontFamily: FONT_MONO,
-    fontSize: 8,
-    color: COLORS.green,
-    letterSpacing: 1.5,
-    textTransform: 'uppercase',
-  },
-
-  // Error
   errorBanner: {
     marginHorizontal: 12,
     marginTop: 10,
     borderWidth: 1,
     borderColor: COLORS.red,
-    backgroundColor: '#1a0000',
-    borderRadius: 0,
+    backgroundColor: COLORS.redDim,
+    borderRadius: 6,
     padding: 10,
   },
   errorText: {
     fontFamily: FONT_MONO,
-    fontSize: 10,
+    fontSize: 11,
     color: COLORS.red,
-    letterSpacing: 1.5,
+    fontWeight: '700',
   },
-
-  // List
   list: {
     padding: 10,
     gap: 10,
     paddingBottom: 32,
   },
-
-  // Card
+  metricGrid: {
+    flexDirection: 'row',
+    gap: 10,
+    marginBottom: 10,
+  },
+  caveatText: {
+    fontFamily: FONT_MONO,
+    color: COLORS.textHigh,
+    fontSize: 11,
+    lineHeight: 17,
+  },
   card: {
     backgroundColor: COLORS.panel,
     borderWidth: 1,
     borderColor: COLORS.borderDim,
-    borderRadius: 0,
+    borderRadius: 6,
     flexDirection: 'row',
     overflow: 'hidden',
   },
-  cardLeftBar: {
-    width: 3,
+  leftBar: {
+    width: 4,
   },
   cardBody: {
     flex: 1,
@@ -277,88 +299,102 @@ const styles = StyleSheet.create({
   },
   cardTop: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'flex-start',
-    marginBottom: 6,
-    gap: 8,
+    justifyContent: 'space-between',
+    gap: 10,
+    marginBottom: 8,
+  },
+  nameBlock: {
+    flex: 1,
+    minWidth: 0,
   },
   vesselName: {
     fontFamily: FONT_MONO,
     fontSize: 13,
-    letterSpacing: 1.5,
-    textTransform: 'uppercase',
-    flex: 1,
-  },
-  riskBadge: {
-    borderWidth: 1,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 0,
-  },
-  riskBadgeText: {
-    fontFamily: FONT_MONO,
-    fontSize: 8,
-    letterSpacing: 1.5,
+    color: COLORS.cyan,
+    fontWeight: '700',
     textTransform: 'uppercase',
   },
   vesselMeta: {
     fontFamily: FONT_MONO,
-    fontSize: 9,
+    fontSize: 10,
     color: COLORS.textMid,
-    letterSpacing: 1,
-    marginBottom: 8,
+    marginTop: 3,
     textTransform: 'uppercase',
+  },
+  zoneBadge: {
+    borderWidth: 1,
+    borderRadius: 5,
+    paddingHorizontal: 7,
+    paddingVertical: 4,
+  },
+  zoneBadgeText: {
+    fontFamily: FONT_MONO,
+    fontSize: 9,
+    fontWeight: '700',
   },
   routeRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: 8,
+    backgroundColor: COLORS.surface,
+    borderWidth: 1,
+    borderColor: COLORS.borderDim,
+    borderRadius: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
     marginBottom: 10,
   },
-  routeOrigin: {
+  routeCity: {
+    flex: 1,
     fontFamily: FONT_MONO,
     fontSize: 10,
     color: COLORS.textHigh,
-    flex: 1,
-    letterSpacing: 1,
     textTransform: 'uppercase',
+  },
+  routeDest: {
+    textAlign: 'right',
   },
   routeArrow: {
     fontFamily: FONT_MONO,
-    fontSize: 10,
+    fontSize: 11,
     color: COLORS.textMid,
   },
-  routeDest: {
+  confidenceRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 5,
+  },
+  confidenceLabel: {
+    fontFamily: FONT_MONO,
+    fontSize: 9,
+    color: COLORS.textMid,
+  },
+  confidenceValue: {
     fontFamily: FONT_MONO,
     fontSize: 10,
-    color: COLORS.textHigh,
-    flex: 1,
-    letterSpacing: 1,
-    textTransform: 'uppercase',
-    textAlign: 'right',
+    fontWeight: '700',
   },
-  dataRowsWrap: {
+  dataBlock: {
     borderTopWidth: 1,
     borderTopColor: COLORS.borderDim,
+    marginTop: 10,
     paddingTop: 6,
   },
-
-  // Empty state
   emptyState: {
     alignItems: 'center',
     paddingTop: 80,
-    gap: 14,
+    gap: 12,
   },
   emptyIcon: {
     fontFamily: FONT_MONO,
-    fontSize: 28,
+    fontSize: 26,
     color: COLORS.textMid,
-    letterSpacing: 4,
   },
   emptyText: {
     fontFamily: FONT_MONO,
     fontSize: 10,
     color: COLORS.textMid,
-    letterSpacing: 2,
-    textTransform: 'uppercase',
   },
 });

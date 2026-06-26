@@ -6,6 +6,11 @@ dotenv.config() // fallback to .env
 import { Telegraf } from 'telegraf'
 import { MOCK_NEWS, INDIA_IMPORT_STATS, SIMULATION_SCENARIOS } from '../lib/mock-data'
 import { createSupabaseClient } from '../lib/supabase'
+import { runAgentMesh } from '../lib/agents'
+import { getLiveSummary } from '../lib/live-data'
+import { verifyRumorClaim } from '../lib/ai'
+
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? process.env.APP_URL ?? process.env.CLOUD_RUN_SERVICE_URL ?? 'http://localhost:3000'
 
 const riskLabel = (score: number) =>
   score >= 70 ? '🔴 CRITICAL' : score >= 45 ? '🟠 HIGH' : '🟡 ELEVATED'
@@ -42,7 +47,10 @@ function registerHandlers(bot: Telegraf) {
       `/spr — Strategic Petroleum Reserve status\n` +
       `/simulate — Run crisis simulation\n` +
       `/news — Latest geopolitical intelligence\n` +
-      `/price — Live Brent crude price\n\n` +
+      `/price — Live Brent crude price\n` +
+      `/brief — Citizen mission brief\n` +
+      `/rumor <claim> — Check a fuel rumor\n` +
+      `/sources — Show live public sources\n\n` +
       `📡 You will receive automatic alerts when a crisis is triggered.`,
       { parse_mode: 'Markdown' }
     )
@@ -75,7 +83,7 @@ function registerHandlers(bot: Telegraf) {
       `🟢 Cape route: *2 vessels*\n` +
       `🔵 Safe waters: *3 vessels*\n\n` +
       `Total cargo: ~47M barrels en route to India\n\n` +
-      `📱 Live map: https://drishti-intel.vercel.app`,
+      `📱 Live map: ${APP_URL}`,
       { parse_mode: 'Markdown' }
     )
   })
@@ -112,7 +120,7 @@ function registerHandlers(bot: Telegraf) {
       scenario.alternatives.map(a =>
         `• ${a.route}: ${a.viability}% viable · ${a.extraCost}`
       ).join('\n') +
-      `\n\n📱 Full war room: https://drishti-intel.vercel.app`,
+      `\n\n📱 Full war room: ${APP_URL}`,
       { parse_mode: 'Markdown' }
     )
   })
@@ -140,6 +148,52 @@ function registerHandlers(bot: Telegraf) {
       { parse_mode: 'Markdown' }
     )
   })
+
+  bot.command('brief', async ctx => {
+    await storeChatId(ctx.chat.id, ctx.from?.username, ctx.from?.first_name)
+    const run = await runAgentMesh({ scenarioId: 'energy_port_cyber_shock', role: 'citizen' })
+    ctx.reply(
+      `*DRISHTI Citizen Brief*\n\n` +
+      `*${run.citizenBrief.headline}*\n\n` +
+      `${run.citizenBrief.impact}\n\n` +
+      run.citizenBrief.actions.map((action) => `- ${action}`).join('\n') +
+      `\n\nRisk: *${run.overallRisk}/100* | Sources: *${run.sourceSummary.live} live / ${run.sourceSummary.total} total*\n` +
+      `War room: ${APP_URL}`,
+      { parse_mode: 'Markdown' }
+    )
+  })
+
+  bot.command('rumor', async ctx => {
+    await storeChatId(ctx.chat.id, ctx.from?.username, ctx.from?.first_name)
+    const claim = ctx.message.text.replace(/^\/rumor\s*/i, '').trim() || 'Fuel pumps are closing nationwide tonight'
+    const verdict = await verifyRumorClaim(claim)
+    ctx.reply(
+      `*DRISHTI Rumor Check*\n\n` +
+      `Claim: _${claim}_\n\n` +
+      `Verdict: *${verdict.verdict.toUpperCase()}* (${Math.round(verdict.confidence * 100)}%)\n` +
+      `${verdict.explanation}\n\n` +
+      `Next: ${verdict.nextAction}`,
+      { parse_mode: 'Markdown' }
+    )
+  })
+
+  bot.command('sources', async ctx => {
+    await storeChatId(ctx.chat.id, ctx.from?.username, ctx.from?.first_name)
+    const summary = await getLiveSummary()
+    const sources = [
+      ...summary.energy.sources,
+      ...summary.corridors.sources,
+      ...summary.cyber.sources,
+      ...summary.news.sources,
+      ...summary.vessels.sources,
+    ].slice(0, 8)
+    ctx.reply(
+      `*DRISHTI Source Stack*\n\n` +
+      sources.map((source) => `- ${source.title} (${source.mode}, ${Math.round(source.confidence * 100)}%)`).join('\n') +
+      `\n\nLive: *${summary.sourceSummary.live}* | Cached: *${summary.sourceSummary.cached}* | Simulated: *${summary.sourceSummary.simulated}*`,
+      { parse_mode: 'Markdown' }
+    )
+  })
 }
 
 // Broadcast crisis alert to every registered chat
@@ -164,7 +218,7 @@ export async function broadcastCrisisAlert(scenarioName: string, icon: string, r
     `• Brent crude: *+${priceChange}%*\n` +
     `• Supply affected: *${affectedVolume}%*\n\n` +
     `AI procurement intelligence activated.\n` +
-    `📱 War room: https://drishti-intel.vercel.app`
+    `📱 War room: ${APP_URL}`
 
   await Promise.allSettled(
     chats.map(c =>

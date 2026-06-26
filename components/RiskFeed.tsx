@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { Radio } from 'lucide-react'
+import { apiFetch } from '@/lib/client-api'
 
 interface NewsItem {
   id: number; headline: string; source: string
@@ -27,7 +28,7 @@ export default function RiskFeed() {
   useEffect(() => {
     const fetchNews = async () => {
       try {
-        const res = await fetch('/api/news')
+        const res = await apiFetch('/api/news')
         const data = await res.json()
         setNews(data.news)
       } finally {

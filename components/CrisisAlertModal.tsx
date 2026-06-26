@@ -13,13 +13,6 @@ interface Props {
   onDismiss: () => void
 }
 
-const SCENARIO_COLORS: Record<string, string> = {
-  hormuz_closure:  '#ff3232',
-  redsea_shutdown: '#ffb800',
-  opec_cut:        '#ffb800',
-  combined_crisis: '#b06cff',
-}
-
 function getScenarioColor(name: string): string {
   if (name.toLowerCase().includes('hormuz')) return '#ff3232'
   if (name.toLowerCase().includes('red sea')) return '#ffb800'
@@ -32,12 +25,15 @@ export default function CrisisAlertModal({ scenario, onDismiss }: Props) {
   const [phase, setPhase] = useState<'hidden' | 'in' | 'hold' | 'out'>('hidden')
 
   useEffect(() => {
-    if (!scenario) { setPhase('hidden'); return }
-    setPhase('in')
+    if (!scenario) {
+      const t0 = setTimeout(() => setPhase('hidden'), 0)
+      return () => clearTimeout(t0)
+    }
+    const t0 = setTimeout(() => setPhase('in'), 0)
     const t1 = setTimeout(() => setPhase('hold'), 80)
     const t2 = setTimeout(() => setPhase('out'), 3200)
     const t3 = setTimeout(() => { setPhase('hidden'); onDismiss() }, 3600)
-    return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(t3) }
+    return () => { clearTimeout(t0); clearTimeout(t1); clearTimeout(t2); clearTimeout(t3) }
   }, [scenario]) // eslint-disable-line react-hooks/exhaustive-deps
 
   if (phase === 'hidden' || !scenario) return null

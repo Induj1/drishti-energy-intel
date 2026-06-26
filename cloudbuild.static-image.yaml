@@ -1,0 +1,11 @@
+steps:
+  - name: gcr.io/cloud-builders/docker
+    args:
+      - build
+      - -f
+      - Dockerfile.static
+      - -t
+      - asia-south1-docker.pkg.dev/drishti-500608/drishti-containers/drishti-sentinelmesh-cloudrun:latest
+      - .
+images:
+  - asia-south1-docker.pkg.dev/drishti-500608/drishti-containers/drishti-sentinelmesh-cloudrun:latest

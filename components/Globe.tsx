@@ -1,6 +1,7 @@
 'use client'
 
 import { useRef, useEffect, useMemo, useState } from 'react'
+import type { GlobeMethods } from 'react-globe.gl'
 
 type TrailPoint = [number, number]
 interface Trail { path: TrailPoint[]; color: string }
@@ -22,6 +23,14 @@ interface Vessel {
 
 interface SimulationState {
   active: boolean; scenarioId: string | null; rerouting: boolean
+}
+
+type VesselPoint = {
+  lat: number
+  lng: number
+  size: number
+  color: string
+  vessel: Vessel
 }
 
 interface GlobeProps {
@@ -54,7 +63,7 @@ const PORTS = [
 ]
 
 export default function Globe({ vessels, simulation, onVesselClick }: GlobeProps) {
-  const globeEl = useRef<any>(null)
+  const globeEl = useRef<GlobeMethods | undefined>(undefined)
   const containerRef = useRef<HTMLDivElement>(null)
   const [dims, setDims] = useState({ w: 800, h: 600 })
   const [trails, setTrails] = useState<Trail[]>([])
@@ -75,24 +84,25 @@ export default function Globe({ vessels, simulation, onVesselClick }: GlobeProps
   // Initial camera position
   useEffect(() => {
     if (!globeEl.current) return
-    globeEl.current.pointOfView({ lat: 20, lng: 65, altitude: 2.2 }, 0)
+    globeEl.current.pointOfView({ lat: 20, lng: 65, altitude: 1.45 }, 0)
   }, [])
 
   // Animate camera on crisis
   useEffect(() => {
     if (!globeEl.current) return
     if (!simulation.active) {
-      globeEl.current.pointOfView({ lat: 20, lng: 65, altitude: 2.2 }, 1500)
+      globeEl.current.pointOfView({ lat: 20, lng: 65, altitude: 1.45 }, 1200)
       return
     }
     const views: Record<string, { lat: number; lng: number; altitude: number }> = {
-      hormuz_closure: { lat: 26, lng: 57, altitude: 2.0 },
-      redsea_shutdown: { lat: 12, lng: 44, altitude: 2.2 },
-      opec_cut:        { lat: 24, lng: 46, altitude: 2.5 },
-      combined_crisis: { lat: 18, lng: 55, altitude: 3.0 },
+      hormuz_closure: { lat: 26, lng: 57, altitude: 1.25 },
+      redsea_shutdown: { lat: 12, lng: 44, altitude: 1.4 },
+      opec_cut:        { lat: 24, lng: 46, altitude: 1.55 },
+      energy_port_cyber_shock: { lat: 20, lng: 66, altitude: 1.3 },
+      combined_crisis: { lat: 18, lng: 55, altitude: 1.65 },
     }
     const v = simulation.scenarioId ? views[simulation.scenarioId] : null
-    if (v) globeEl.current.pointOfView(v, 2000)
+    if (v) globeEl.current.pointOfView(v, 1200)
   }, [simulation.active, simulation.scenarioId])
 
   // Build vessel trail history
@@ -134,7 +144,7 @@ export default function Globe({ vessels, simulation, onVesselClick }: GlobeProps
     )
   }, [vessels])
 
-  const points = useMemo(() => vessels.map(v => ({
+  const points = useMemo<VesselPoint[]>(() => vessels.map(v => ({
     lat: v.lat,
     lng: v.lng,
     size: v.type === 'VLCC' || v.type === 'ULCC' ? 0.7 : 0.5,
@@ -150,8 +160,8 @@ export default function Globe({ vessels, simulation, onVesselClick }: GlobeProps
         ref={globeEl}
         width={dims.w}
         height={dims.h}
-        globeImageUrl="//unpkg.com/three-globe/example/img/earth-night.jpg"
-        backgroundImageUrl="//unpkg.com/three-globe/example/img/night-sky.png"
+        globeImageUrl="/earth-night.jpg"
+        backgroundImageUrl="/night-sky.png"
         atmosphereColor="#1e40af"
         atmosphereAltitude={0.15}
         // Shipping route arcs
@@ -165,7 +175,7 @@ export default function Globe({ vessels, simulation, onVesselClick }: GlobeProps
         // Vessel movement trails
         pathsData={trails}
         pathPoints="path"
-        pathColor={(t: any) => t.color}
+        pathColor={(t: object) => (t as Trail).color}
         pathDashLength={0.4}
         pathDashGap={0.15}
         pathDashAnimateTime={2800}
@@ -181,15 +191,18 @@ export default function Globe({ vessels, simulation, onVesselClick }: GlobeProps
         pointAltitude="size"
         pointColor="color"
         pointRadius={0.4}
-        onPointClick={(p: any) => onVesselClick(p.vessel)}
-        pointLabel={(p: any) => `
+        onPointClick={(p: object) => onVesselClick((p as VesselPoint).vessel)}
+        pointLabel={(p: object) => {
+          const vessel = (p as VesselPoint).vessel
+          return `
           <div style="background:#0f172a;border:1px solid #334155;padding:8px;border-radius:6px;font-size:12px;color:#e2e8f0;min-width:160px">
-            <b style="color:#f97316">${p.vessel.name}</b><br/>
-            ${p.vessel.type} · ${p.vessel.cargo}<br/>
-            <span style="color:#94a3b8">From:</span> ${p.vessel.origin}<br/>
-            <span style="color:#94a3b8">To:</span> ${p.vessel.destination}<br/>
-            <span style="color:#94a3b8">ETA:</span> ${p.vessel.eta}
-          </div>`}
+            <b style="color:#f97316">${vessel.name}</b><br/>
+            ${vessel.type} - ${vessel.cargo}<br/>
+            <span style="color:#94a3b8">From:</span> ${vessel.origin}<br/>
+            <span style="color:#94a3b8">To:</span> ${vessel.destination}<br/>
+            <span style="color:#94a3b8">ETA:</span> ${vessel.eta}
+          </div>`
+        }}
       />
     </div>
   )

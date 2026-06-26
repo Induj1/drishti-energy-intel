@@ -1,0 +1,50 @@
+{
+  "name": "DRISHTI SentinelMesh",
+  "version": "1.0.0-hackathon",
+  "description": "Multi-agent energy security crisis OS for public data fusion, procurement advice, cyber-port risk, policy approval, and citizen guidance.",
+  "entrypoints": {
+    "agentfacts": "/.well-known/agentfacts.json",
+    "run": "/api/agents/run",
+    "live_summary": "/api/live/summary",
+    "mission_brief": "/api/mission-brief",
+    "rumor_check": "/api/rumor-check",
+    "evidence_pack": "/api/evidence-pack"
+  },
+  "agents": [
+    "source-watchtower",
+    "corridor-sentinel",
+    "cyber-port-guard",
+    "procurement-copilot",
+    "nasiko-orchestrator",
+    "policy-gate",
+    "citizen-brief"
+  ],
+  "tools": [
+    "Gemini API or local adapter",
+    "Nasiko workflow adapter",
+    "PPAC",
+    "FRED",
+    "Frankfurter",
+    "Open-Meteo",
+    "CISA KEV",
+    "FIRST EPSS",
+    "OSV",
+    "EIA RSS",
+    "AISStream optional",
+    "Cloud Run"
+  ],
+  "safety": {
+    "policy_gate": true,
+    "human_approval_required_for": [
+      "SPR drawdown",
+      "market-moving procurement",
+      "public emergency alert"
+    ],
+    "source_modes": [
+      "live",
+      "cached",
+      "simulated",
+      "fallback"
+    ]
+  }
+}

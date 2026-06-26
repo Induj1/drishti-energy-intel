@@ -12,12 +12,14 @@ export default function SPRCountdown({ crisisActive, priceImpact }: SPRCountdown
   const [brent, setBrent] = useState(INDIA_IMPORT_STATS.brentPrice)
   const [sprDays, setSprDays] = useState(INDIA_IMPORT_STATS.sprDays)
   const [tick, setTick] = useState(0)
+  const [updatedAt, setUpdatedAt] = useState('SYNCING')
 
   useEffect(() => {
     const interval = setInterval(() => {
       setTick(t => t + 1)
+      setUpdatedAt(new Date().toLocaleTimeString())
       // Simulate live price movement
-      setBrent(p => {
+      setBrent(() => {
         const base = crisisActive
           ? INDIA_IMPORT_STATS.brentPrice * (1 + priceImpact / 100)
           : INDIA_IMPORT_STATS.brentPrice
@@ -113,7 +115,7 @@ export default function SPRCountdown({ crisisActive, priceImpact }: SPRCountdown
       </div>
 
       <div className="text-[9px] text-slate-600 text-center">
-        Tick #{tick} · Updated {new Date().toLocaleTimeString()}
+        Tick #{tick} - Updated {updatedAt}
       </div>
     </div>
   )

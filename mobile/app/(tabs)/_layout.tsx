@@ -1,10 +1,6 @@
 import { Tabs } from 'expo-router';
-import { StyleSheet, View, Text } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 import { COLORS, FONT_MONO } from '../../constants';
-
-// ---------------------------------------------------------------------------
-// Custom tab icon — ASCII glyph with active cyan underline bar
-// ---------------------------------------------------------------------------
 
 interface TabIconProps {
   glyph: string;
@@ -13,27 +9,17 @@ interface TabIconProps {
 }
 
 function TabIcon({ glyph, label, focused }: TabIconProps) {
+  const color = focused ? COLORS.cyan : COLORS.textMid;
   return (
     <View style={styles.iconWrap}>
-      <Text style={[styles.iconGlyph, { color: focused ? COLORS.cyan : COLORS.textMid }]}>
-        {glyph}
-      </Text>
-      <Text
-        style={[
-          styles.iconLabel,
-          { color: focused ? COLORS.cyan : COLORS.textMid },
-        ]}
-      >
+      <Text style={[styles.iconGlyph, { color }]}>{glyph}</Text>
+      <Text style={[styles.iconLabel, { color }]} numberOfLines={1}>
         {label}
       </Text>
-      {focused ? <View style={styles.activeBar} /> : <View style={styles.inactiveBar} />}
+      <View style={[styles.activeBar, { backgroundColor: focused ? COLORS.cyan : 'transparent' }]} />
     </View>
   );
 }
-
-// ---------------------------------------------------------------------------
-// Tab layout
-// ---------------------------------------------------------------------------
 
 export default function TabLayout() {
   return (
@@ -49,53 +35,41 @@ export default function TabLayout() {
       <Tabs.Screen
         name="index"
         options={{
-          title: 'WAR ROOM',
-          tabBarIcon: ({ focused }) => (
-            <TabIcon glyph="[+]" label="WAR ROOM" focused={focused} />
-          ),
+          title: 'War Room',
+          tabBarIcon: ({ focused }) => <TabIcon glyph="[+]" label="WAR" focused={focused} />,
         }}
       />
       <Tabs.Screen
         name="simulate"
         options={{
-          title: 'SIMULATE',
-          tabBarIcon: ({ focused }) => (
-            <TabIcon glyph=">>>" label="SIMULATE" focused={focused} />
-          ),
+          title: 'Simulate',
+          tabBarIcon: ({ focused }) => <TabIcon glyph=">>" label="SIM" focused={focused} />,
         }}
       />
       <Tabs.Screen
         name="vessels"
         options={{
-          title: 'ASSETS',
-          tabBarIcon: ({ focused }) => (
-            <TabIcon glyph="-->" label="ASSETS" focused={focused} />
-          ),
+          title: 'Assets',
+          tabBarIcon: ({ focused }) => <TabIcon glyph="->" label="ASSETS" focused={focused} />,
         }}
       />
       <Tabs.Screen
         name="intel"
         options={{
-          title: 'SIGINT',
-          tabBarIcon: ({ focused }) => (
-            <TabIcon glyph="~~~" label="SIGINT" focused={focused} />
-          ),
+          title: 'Intel',
+          tabBarIcon: ({ focused }) => <TabIcon glyph="~~" label="INTEL" focused={focused} />,
         }}
       />
     </Tabs>
   );
 }
 
-// ---------------------------------------------------------------------------
-// Styles
-// ---------------------------------------------------------------------------
-
 const styles = StyleSheet.create({
   tabBar: {
-    backgroundColor: '#010c0c',
+    backgroundColor: COLORS.tabBar,
     borderTopColor: COLORS.borderDim,
     borderTopWidth: 1,
-    height: 68,
+    height: 70,
     paddingBottom: 0,
     paddingTop: 0,
   },
@@ -103,31 +77,23 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingTop: 6,
-    width: 72,
-    gap: 2,
+    width: 74,
+    gap: 3,
   },
   iconGlyph: {
     fontFamily: FONT_MONO,
     fontSize: 13,
-    letterSpacing: 1,
+    fontWeight: '700',
   },
   iconLabel: {
     fontFamily: FONT_MONO,
-    fontSize: 8,
-    letterSpacing: 1.5,
-    textTransform: 'uppercase',
+    fontSize: 9,
+    fontWeight: '700',
   },
   activeBar: {
     marginTop: 4,
-    width: 28,
+    width: 30,
     height: 2,
-    backgroundColor: COLORS.cyan,
-    borderRadius: 0,
-  },
-  inactiveBar: {
-    marginTop: 4,
-    width: 28,
-    height: 2,
-    backgroundColor: 'transparent',
+    borderRadius: 1,
   },
 });

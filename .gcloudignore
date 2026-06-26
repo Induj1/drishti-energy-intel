@@ -1,0 +1,11 @@
+.git
+.next
+node_modules
+npm-debug.log
+.env
+.env.*
+coverage
+mobile/node_modules
+mobile/.expo
+mobile/.claude
+firebase-debug.log

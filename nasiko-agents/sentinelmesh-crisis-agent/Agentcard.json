@@ -1,0 +1,35 @@
+{
+  "name": "sentinelmesh-crisis-agent",
+  "description": "DRISHTI SentinelMesh crisis agent for energy-port-cyber risk, procurement options, approval gates, and citizen-safe guidance.",
+  "capabilities": [
+    "energy_crisis_orchestration",
+    "maritime_corridor_risk",
+    "port_cyber_overlay",
+    "procurement_advice",
+    "citizen_briefing",
+    "policy_approval_gate"
+  ],
+  "tags": [
+    "drishti",
+    "sentinelmesh",
+    "energy-security",
+    "gemini",
+    "cloud-run",
+    "nasiko",
+    "hackathon"
+  ],
+  "examples": [
+    "Run an energy port cyber shock assessment for India",
+    "Summarize public impact if fuel imports are delayed",
+    "Which agent should handle a crude import disruption with port cyber risk?"
+  ],
+  "input_mode": "text",
+  "output_mode": "json",
+  "agent_protocol_version": "a2a-v1",
+  "endpoints": {
+    "/": "Default crisis analysis endpoint",
+    "/analyze": "Analyze a free-text crisis query",
+    "/run": "Run a structured SentinelMesh scenario",
+    "/health": "Health check endpoint"
+  }
+}

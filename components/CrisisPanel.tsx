@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { AlertTriangle, Zap, TrendingUp, Globe } from 'lucide-react'
 import { SIMULATION_SCENARIOS } from '@/lib/mock-data'
+import { apiFetch } from '@/lib/client-api'
 
 interface CrisisPanelProps {
   onSimulate: (scenarioId: string, data: unknown) => void
@@ -37,7 +38,7 @@ export default function CrisisPanel({ onSimulate, activeScenario }: CrisisPanelP
     if (loading) return
     setLoading(scenarioId)
     try {
-      const res = await fetch('/api/simulate', {
+      const res = await apiFetch('/api/simulate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ scenarioId }),

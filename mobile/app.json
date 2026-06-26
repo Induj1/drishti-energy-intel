@@ -11,6 +11,7 @@
       "supportsTablet": true
     },
     "android": {
+      "package": "com.drishti.mobile",
       "adaptiveIcon": {
         "backgroundColor": "#050914",
         "foregroundImage": "./assets/android-icon-foreground.png",
@@ -22,6 +23,9 @@
     "web": {
       "favicon": "./assets/favicon.png",
       "bundler": "metro"
+    },
+    "extra": {
+      "apiBase": "https://drishti-intel.vercel.app"
     },
     "plugins": [
       "expo-router"

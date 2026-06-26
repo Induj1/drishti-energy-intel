@@ -105,6 +105,25 @@ export const SIMULATION_SCENARIOS = {
       { route: 'Kazakhstan (CPC)', viability: 55, extraDays: 12, extraCost: '+$2.2/bbl', capacity: '20%' },
     ],
   },
+  energy_port_cyber_shock: {
+    id: 'energy_port_cyber_shock',
+    name: 'Energy Port Cyber Shock',
+    description: 'Hormuz risk spike plus tanker scheduling cyber disruption at an Indian energy port',
+    icon: '!',
+    impacts: {
+      priceChange: +31.6,
+      transitDelayDays: 18,
+      affectedVolume: 68,
+      sprDaysRemaining: 9.5,
+      gdpImpact: -2.4,
+      powerSectorStress: 52,
+    },
+    alternatives: [
+      { route: 'Cape of Good Hope + West Africa pool', viability: 76, extraDays: 18, extraCost: '+$3.4/bbl', capacity: '45%' },
+      { route: 'UAE/Oman short-haul swaps', viability: 64, extraDays: 6, extraCost: '+$1.7/bbl', capacity: '25%' },
+      { route: 'SPR staged release with port priority berthing', viability: 82, extraDays: 1, extraCost: '+$0.8/bbl', capacity: '30%' },
+    ],
+  },
   combined_crisis: {
     id: 'combined_crisis',
     name: 'Combined Crisis',
