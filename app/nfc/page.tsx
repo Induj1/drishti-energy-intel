@@ -21,10 +21,12 @@ type MissionBrief = {
 
 export default function NFCBriefing() {
   const [brief, setBrief] = useState<MissionBrief | null>(null)
-  const [time, setTime] = useState<Date>(() => new Date())
+  const [time, setTime] = useState('SYNCING')
 
   useEffect(() => {
-    const timer = setInterval(() => setTime(new Date()), 1000)
+    const updateClock = () => setTime(new Date().toUTCString().slice(17, 25))
+    updateClock()
+    const timer = setInterval(updateClock, 1000)
     const fetchTimer = window.setTimeout(() => {
       apiFetch('/api/mission-brief?role=citizen&scenarioId=energy_port_cyber_shock')
         .then((r) => r.json())
@@ -59,7 +61,7 @@ export default function NFCBriefing() {
               <Radio style={{ width: 14, height: 14, color: 'var(--c-green)' }} className="blink-slow" />
               <span>LIVE STATUS</span>
             </div>
-            <span>{time.toUTCString().slice(17, 25)}</span>
+            <span>{time}</span>
           </div>
           <div className="p-4">
             <div className="flex items-center justify-between gap-3">
