@@ -1,98 +1,229 @@
-# DRISHTI SentinelMesh Agentic Crisis OS
+# SentinelMesh Agentic Crisis OS
 
-Hackathon-ready Agentic Crisis OS for India's energy security, built for **Track B: Enterprise Agent Engineering**.
+**Fuel crises are chaotic. SentinelMesh turns scattered vessel, cyber, market, weather, and news signals into verified decisions and citizen-safe guidance.**
 
-DRISHTI turns public energy, maritime, weather, cyber, and news signals into a multi-agent command surface for policy teams, operators, and citizens. The deployed version uses **Google Cloud Run as the public API gateway**, **Supabase Edge Functions as the backend**, **Gemini 2.5 Flash for agent/citizen reasoning**, and a **Nasiko sponsor proof adapter** for enterprise orchestration demos.
+SentinelMesh is a hackathon-ready, multi-agent crisis command center for India's energy security. It is designed for **Track B: Enterprise Agent Engineering** and demonstrates a real agentic workflow across **Gemini / Google AI Studio**, **Google Cloud Run**, **Supabase Edge**, and a **Nasiko-ready orchestration adapter**.
 
-## Live Submission URLs
+In simple terms: when a shipping corridor, oil market, port cyber system, or public rumor starts flashing red, SentinelMesh behaves like an AI crisis room. It gathers evidence, routes work across specialist agents, keeps risky decisions behind a human approval gate, and converts the result into clear guidance for both enterprise operators and common citizens.
 
-Use the **Cloud Run URL** as the main hackathon submission URL:
+## Live Submission
 
-- Main submission URL: `https://drishti-sentinelmesh-or2awz4nzq-el.a.run.app`
-- Firebase frontend: `https://drishti-sentinelmesh-500608.web.app`
-- Cloud Run API gateway: `https://drishti-sentinelmesh-or2awz4nzq-el.a.run.app/api/*`
-- Supabase Edge backend: `https://bkzbcolbucbvnvyqveoe.supabase.co/functions/v1/drishti-api`
-- Nasiko proof endpoint: `https://drishti-sentinelmesh-or2awz4nzq-el.a.run.app/api/nasiko/probe`
+Use the Cloud Run URL as the primary hackathon submission URL.
 
-## Verified Production Status
+| Item | URL |
+| --- | --- |
+| Main Cloud Run URL | https://drishti-sentinelmesh-or2awz4nzq-el.a.run.app |
+| Polished Firebase frontend | https://drishti-sentinelmesh-500608.web.app |
+| GitHub repo | https://github.com/Induj1/drishti-energy-intel |
+| Cloud Run API health | https://drishti-sentinelmesh-or2awz4nzq-el.a.run.app/api/health |
+| Nasiko proof endpoint | https://drishti-sentinelmesh-or2awz4nzq-el.a.run.app/api/nasiko/probe |
+| AgentFacts metadata | https://drishti-sentinelmesh-or2awz4nzq-el.a.run.app/api/agentfacts |
 
-- Cloud Run `/health` returns `200`.
-- Cloud Run `/api/vessels`, `/api/news`, `/api/live/summary`, `/api/simulate`, `/api/nasiko/probe` return `200`.
-- Firebase `/api/*` returns `307 -> 200` via method-preserving redirect to Cloud Run.
-- POST `/api/agents/run` works through Cloud Run and Firebase redirect.
-- `/api/health` reports Gemini provider as `gemini` with model `gemini-2.5-flash`.
-- Browser UI shows non-zero live state: `4 VESSELS`, `5 VERIFIED SRC`, `SOURCES 6`, `VERIFIED 5`.
-- Browser console verification completed with zero errors.
+## What Judges See First
 
-## Why This Fits Track B
+![SentinelMesh dashboard](public/screenshots/sentinelmesh-dashboard.png)
 
-- **Innovation & creativity:** agentic crisis operating system for energy security, not a generic chatbot/dashboard.
-- **Technical execution:** live public data fusion, multi-agent workflow, approval gate, citizen brief, NFC/mobile surfaces, Cloud Run gateway, Supabase Edge backend.
-- **Google tool utilization:** Gemini 2.5 Flash, AI Studio-compatible Gemini REST calls, Google Cloud Run public deployment, Cloud Logging-friendly health endpoints.
-- **Live deployment:** Cloud Run public URL is active and should be submitted.
-- **Presentation:** one obvious `RUN WINNING DEMO` path, visible source proof, Nasiko proof panel, and policy gate.
+![SentinelMesh agent demo](public/screenshots/sentinelmesh-agent-demo.png)
 
-## Demo Path
+![SentinelMesh citizen mobile brief](public/screenshots/sentinelmesh-mobile-brief.png)
 
-1. Open `https://drishti-sentinelmesh-or2awz4nzq-el.a.run.app`.
-2. Click `RUN WINNING DEMO` or `DEMO MODE`.
-3. Show the first-screen proof ribbon: Cloud Run, Supabase, Nasiko, Agent Mesh, approval gate.
-4. Open the `AGENTS` tab and show Source Watchtower, Corridor Sentinel, Cyber Guard, Nasiko bridge, Policy Gate, and Citizen Brief.
-5. Open `/mobile` for citizen mode.
-6. Open `/nfc` for the NFC fuel-safety brief.
-7. Open `/api/health` to prove Gemini is live.
-8. Open `/api/nasiko/probe` to prove sponsor integration readiness.
+## The Problem
+
+During an energy or infrastructure crisis, the real issue is not that data is missing. The issue is that the data is scattered.
+
+- Vessel and corridor risk are separate from fuel prices.
+- Cyber alerts are separate from port and logistics operations.
+- News and public rumors move faster than official communication.
+- Decision-makers need evidence, not another generic chatbot.
+- Citizens need calm guidance, not raw dashboards.
+
+SentinelMesh solves this by turning messy live signals into a coordinated agent workflow.
+
+## The Solution
+
+SentinelMesh is an **AI crisis operating system** with a visible multi-agent chain:
+
+| Agent | Role |
+| --- | --- |
+| Source Watchtower | Pulls and verifies public data sources such as energy, news, cyber, weather, and vessel evidence. |
+| Corridor Sentinel | Scores chokepoints such as Hormuz, Red Sea, Cape routes, and Indian port exposure. |
+| Cyber Guard | Checks port and infrastructure cyber risk using security intelligence sources. |
+| Nasiko Orchestrator | Acts as the sponsor-ready bridge for agent handoffs, workflow routing, and future observability. |
+| Policy Gate | Blocks unsafe automatic action and requires human review for market-moving decisions. |
+| Citizen Brief | Converts complex crisis intelligence into simple public guidance for normal people. |
+
+The result is not just a dashboard. It is a working agentic workflow: evidence in, agent reasoning in the middle, safe decisions out.
+
+## Why This Can Win
+
+| Judging Area | How SentinelMesh Scores |
+| --- | --- |
+| Innovation and Creativity | Frames energy security as a multi-agent crisis OS, not a chatbot or static dashboard. It connects enterprise crisis response to citizen safety. |
+| Technical Execution | Deployed web app, API gateway, Supabase Edge backend, live/fallback data fusion, multi-agent orchestration, mobile/NFC views, human approval gate, and public endpoints. |
+| Google Tool Utilization | Gemini 2.5 Flash for agent reasoning, Google AI Studio compatible API usage, and Google Cloud Run as the mandatory public deployment layer. |
+| Live Deployment | Cloud Run URL is public and active. Firebase frontend is a polished visual backup. |
+| Presentation and Demo | One obvious `RUN WINNING DEMO` button, visible agent chain, proof badges, Nasiko proof panel, and citizen view. |
+
+## Verified Production Proof
+
+Latest verified behavior:
+
+- Cloud Run public URL is active.
+- Firebase frontend is active.
+- Firebase `/api/*` redirects to Cloud Run using method-preserving `307`.
+- Cloud Run `/api/*` routes proxy into the Supabase Edge backend.
+- `/api/health` reports Gemini-backed AI with `gemini-2.5-flash`.
+- Dashboard shows non-zero live proof such as vessels, verified sources, Cloud Run, Supabase, Nasiko, and approval gate status.
+- Agent mesh run expands to **12 total evidence sources** with **11 live public sources** in the backend response.
+- Browser verification passed on `/`, `/mobile`, and `/nfc` with no fresh console errors after the latest fix.
+
+Useful proof links:
+
+```text
+https://drishti-sentinelmesh-or2awz4nzq-el.a.run.app/api/health
+https://drishti-sentinelmesh-or2awz4nzq-el.a.run.app/api/live/summary
+https://drishti-sentinelmesh-or2awz4nzq-el.a.run.app/api/nasiko/probe
+https://drishti-sentinelmesh-or2awz4nzq-el.a.run.app/api/agentfacts
+```
+
+## Demo Flow
+
+1. Open the Cloud Run URL: `https://drishti-sentinelmesh-or2awz4nzq-el.a.run.app`.
+2. Show the first screen: title, globe, proof badges, Nasiko proof panel, and agent chain.
+3. Click `RUN WINNING DEMO`.
+4. Show the risk level, live evidence count, and agent chain.
+5. Open the `AGENTS` tab and show Source Watchtower, Corridor Sentinel, Cyber Guard, Nasiko, Policy Gate, and Citizen Brief.
+6. Open `/api/health` to prove Gemini is live.
+7. Open `/api/nasiko/probe` to prove Nasiko sponsor readiness.
+8. Open `/mobile` to show the citizen fuel brief.
+9. Open `/nfc` to show the NFC-style public safety card.
+
+## 60 Second Video Script
+
+Hi everyone, we are presenting **SentinelMesh Agentic Crisis OS**, an AI-powered crisis command center for energy security and public safety.
+
+The problem is that during a fuel or infrastructure crisis, the important signals are scattered. Vessel delays are in one place, fuel prices are somewhere else, cyber alerts are separate, and citizens mostly see rumors before they see verified guidance.
+
+SentinelMesh brings these signals into one live command center. When I click **Run Winning Demo**, multiple AI agents start working together. Source Watchtower checks public evidence. Corridor Sentinel analyzes shipping routes. Cyber Guard checks port technology risk. Nasiko acts as the orchestration bridge for agent handoffs. Policy Gate keeps risky actions behind human approval. Citizen Brief converts the result into simple guidance for normal people.
+
+Technically, this is built for Track B. Gemini powers the agent reasoning, Google Cloud Run provides the public deployment gateway, Supabase Edge runs the backend, and the Nasiko adapter proves sponsor-ready workflow integration.
+
+The key idea is speed with safety. SentinelMesh does not blindly automate crisis decisions. It verifies evidence, explains the reasoning, and keeps humans in control.
+
+In one line: **SentinelMesh turns live chaos into verified decisions.**
 
 ## Architecture
 
 ```mermaid
 flowchart LR
-  Judge["Judge Browser"] --> CR["Cloud Run Gateway"]
+  Judge["Judge Browser"] --> CR["Google Cloud Run Gateway"]
   Judge --> FB["Firebase Hosting"]
   FB -- "307 /api/*" --> CR
-  CR -- "proxy /api/*" --> SB["Supabase Edge Function drishti-api"]
+  CR -- "proxy /api/*" --> SB["Supabase Edge Function"]
   SB --> Gemini["Gemini 2.5 Flash"]
   SB --> Sources["Public Data Sources"]
   CR --> Nasiko["Nasiko Proof Adapter"]
   FB --> SupabaseRT["Supabase Realtime"]
+  CR --> AgentFacts["AgentFacts / NANDA-style Metadata"]
 ```
 
-Primary path for the demo is Cloud Run. Firebase is a polished static frontend and backup URL. Supabase remains the backend system of record, while Cloud Run satisfies the Track B public deployment requirement and gives judges one GCP-owned API gateway.
+Primary demo path is Cloud Run. Firebase is the polished frontend and backup URL. Supabase is the backend system of record. Cloud Run satisfies the Track B public deployment requirement and gives judges a GCP-owned gateway.
+
+## Google, GCP, Gemini, And AI Studio Usage
+
+- **Gemini 2.5 Flash** powers agent and citizen reasoning through Gemini-compatible API calls.
+- **Google AI Studio compatibility** keeps model setup simple for hackathon demos.
+- **Google Cloud Run** hosts the public gateway and mandatory deployment URL.
+- **Cloud Logging-friendly endpoints** expose clear health and API behavior.
+- **Cloud Run URL** can be submitted directly even though the frontend also has Firebase Hosting polish.
+
+## Nasiko Sponsor Integration
+
+Nasiko is not hidden in the code. It is part of the story and the system design.
+
+SentinelMesh includes:
+
+- A visible Nasiko proof panel in the UI.
+- `/api/nasiko/probe` endpoint for sponsor proof.
+- `lib/nasiko.ts` router client for live Nasiko calls when credentials are available.
+- `nasiko-agents/sentinelmesh-crisis-agent/Agentcard.json` so Nasiko can register SentinelMesh as an agent.
+- A local Nasiko deployment guide in `docs/NASIKO_INTEGRATION.md`.
+
+How Nasiko fits the future product:
+
+- **LLM Router:** route each agent step to the best model.
+- **MCP Gateway:** expose trusted crisis tools and data feeds.
+- **Observability:** trace each agent handoff and evidence source.
+- **MAF V1:** declare prompts, steps, and approval rules instead of hardcoding every workflow.
+- **Multi Agent Harness:** run Source Watchtower, Cyber Guard, Policy Gate, and Citizen Brief as coordinated agents.
+- **Agent Usage Dashboard:** measure cost, usage, failures, and lifecycle state.
 
 ## Core Endpoints
 
 | Endpoint | Purpose |
 | --- | --- |
-| `/health` | Cloud Run gateway health |
-| `/api/health` | Supabase backend health plus Gemini provider/model proof |
-| `/api/live/summary` | Fused public data sweep |
-| `/api/vessels` | Vessel layer for tankers, LNG, coal, and product cargo |
-| `/api/news` | Crisis/risk feed |
-| `/api/agents/run` | Full multi-agent orchestration |
-| `/api/simulate` | Crisis simulation and agent run trigger |
-| `/api/mission-brief` | Citizen/operator/minister brief |
-| `/api/policy-gate` | Human approval rule engine |
-| `/api/rumor-check` | WhatsApp/Telegram rumor triage |
-| `/api/evidence-pack` | Judge evidence markdown and JSON |
-| `/api/agentfacts` | AgentFacts/NANDA-compatible metadata |
-| `/.well-known/agentfacts.json` | Discoverable agent metadata |
-| `/api/nasiko/probe` | Nasiko sponsor proof endpoint |
-
-All `/api/*` routes work on Cloud Run. Firebase Hosting redirects `/api/*` to Cloud Run with `307`, so method-sensitive POST routes keep working.
+| `/health` | Cloud Run gateway health. |
+| `/api/health` | Supabase backend health plus Gemini provider/model proof. |
+| `/api/live/summary` | Fused public data sweep. |
+| `/api/vessels` | Vessel layer for tanker/cargo visualization. |
+| `/api/news` | Crisis and risk feed. |
+| `/api/agents/run` | Full multi-agent orchestration. |
+| `/api/simulate` | Crisis simulation and agent run trigger. |
+| `/api/mission-brief` | Citizen/operator/minister brief. |
+| `/api/policy-gate` | Human approval rule engine. |
+| `/api/rumor-check` | WhatsApp/Telegram rumor triage. |
+| `/api/evidence-pack` | Judge evidence markdown and JSON. |
+| `/api/agentfacts` | AgentFacts/NANDA-style metadata. |
+| `/.well-known/agentfacts.json` | Discoverable agent metadata. |
+| `/api/nasiko/probe` | Nasiko sponsor proof endpoint. |
 
 ## Data Sources
 
-The app works with free/public sources and graceful fallbacks.
+The app uses free/public sources and graceful fallbacks so the demo does not collapse if one external source is slow.
 
 - PPAC India import/export references.
 - FRED daily Brent crude CSV.
 - Open-Meteo marine/weather risk.
 - CISA Known Exploited Vulnerabilities JSON.
+- FIRST EPSS cyber risk signal.
+- OSV vulnerability query.
 - EIA Today in Energy RSS.
 - AISStream optional websocket key for live AIS.
 - Public port/vessel schedule links as evidence references.
 
-Exact petroleum cargo labels usually require paid AIS/port feeds, so the demo labels vessel cargo types transparently and uses simulated motion where open data is insufficient.
+Exact petroleum cargo labels usually require paid AIS/port feeds, so the demo is transparent: it uses public evidence where available and simulated vessel motion where fully open data is insufficient.
+
+## Citizen Impact
+
+SentinelMesh is useful for enterprise teams, but it is also designed for a normal person.
+
+- `/mobile` gives a simple fuel-risk brief.
+- `/nfc` behaves like a public safety card that can be opened from an NFC tag.
+- Rumor check turns panic messages into a calm verdict.
+- Citizen Brief explains what to do without exposing raw crisis complexity.
+
+This matters because a crisis response system only works if the public understands what is safe, what is verified, and what action to take next.
+
+## Local Run
+
+```bash
+npm install
+npm run dev
+```
+
+Open:
+
+```text
+http://localhost:3000
+```
+
+Production checks:
+
+```bash
+npm run lint
+npm run build
+npm run build:static
+```
 
 ## Environment
 
@@ -124,18 +255,9 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=
 TELEGRAM_BOT_TOKEN=
 ```
 
-Never commit real API keys. Use Supabase secrets for `GEMINI_API_KEY`, `OPENAI_API_KEY`, and messaging tokens. A Supabase anon key in frontend/deploy config is a public browser key, not a service-role key.
+Never commit real API keys. Use Supabase secrets or cloud runtime secrets for Gemini, OpenAI, Telegram, and any private tokens. The Supabase anon key is a public browser key, not a service-role key.
 
-## Local Run
-
-```bash
-npm install
-npm run dev
-```
-
-Open `http://localhost:3000`.
-
-## Cloud Run Gateway Deployment
+## Cloud Run Deployment
 
 The production Cloud Run service is a lightweight Node gateway stored in `cloudrun-gateway/`. It keeps `/health` local, exposes `/api/nasiko/probe`, and proxies every other `/api/*` request to Supabase Edge.
 
@@ -162,7 +284,7 @@ Deploy:
 npx firebase-tools@latest deploy --only hosting --project sample-firebase-ai-app-5e44c
 ```
 
-`firebase.json` redirects `/api/:path*` to Cloud Run with `307`.
+`firebase.json` redirects `/api/:path*` to Cloud Run with `307`, so POST routes keep working.
 
 ## Supabase Edge Backend
 
@@ -193,14 +315,7 @@ The migration adds:
 
 The app runs without database persistence, but Supabase adds realtime crisis sync and audit persistence.
 
-## Nasiko Sponsor Integration
-
-The app has two Nasiko paths:
-
-1. DRISHTI calls Nasiko's router from `lib/nasiko.ts` when sponsor/local credentials are available.
-2. Nasiko can register DRISHTI as an agent using `nasiko-agents/sentinelmesh-crisis-agent/Agentcard.json`.
-
-Local Nasiko setup:
+## Local Nasiko Setup
 
 ```bash
 git clone https://github.com/Nasiko-Labs/nasiko.git
@@ -230,13 +345,6 @@ Probe:
 curl http://localhost:3000/api/nasiko/probe
 ```
 
-## Mobile, NFC, And Messaging
+## Submission One-Liner
 
-- `/mobile`: citizen-facing fuel/risk brief.
-- `/nfc`: NFC-card style public safety brief.
-- Telegram bot code is in `telegram/` with commands for `/brief`, `/rumor`, `/sources`, `/risk`, `/vessels`, `/spr`, `/simulate`, `/news`, and `/price`.
-
-## Hackathon Narrative
-
-India does not just need another dashboard. It needs an agentic response layer that can fuse live public signals, explain evidence, enforce approval gates, and translate state-level risk into citizen-safe guidance. DRISHTI SentinelMesh is that layer.
-
+**SentinelMesh is a Gemini-powered, Cloud Run deployed, Nasiko-ready multi-agent crisis OS that turns live energy, cyber, vessel, and news chaos into verified decisions for operators and safe guidance for citizens.**
